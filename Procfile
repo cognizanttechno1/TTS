@@ -1,1 +1,1 @@
-web: gunicorn TTS.wsgi:application
+web: gunicorn tts.wsgi:application
