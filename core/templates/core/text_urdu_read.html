@@ -1,0 +1,177 @@
+{% extends "core/base.html" %}
+
+{% block title %}📖 {{ text.subject }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-3" style="font-family:'Jameel Noori Nastaleeq'; direction:rtl;">
+        {{ text.subject }} <small class="text-muted">({{ text.date }})</small>
+    </h2>
+
+    <!-- Controls -->
+    <div class="mb-3">
+        <button id="playBtn" class="btn btn-success btn-sm">▶️ Play</button>
+        <button id="pauseBtn" class="btn btn-warning btn-sm">⏸ Pause/Resume</button>
+        <button id="stopBtn" class="btn btn-danger btn-sm">⏹ Stop</button>
+
+        <!-- Voice Dropdown -->
+        <select id="voiceSelect" class="form-select d-inline w-auto ms-2">
+            <option value="">Choose Voice</option>
+        </select>
+    </div>
+
+    <!-- Font size controls -->
+    <div class="mb-2">
+        <button id="fontDec" class="btn btn-secondary btn-sm">A-</button>
+        <button id="fontInc" class="btn btn-secondary btn-sm">A+</button>
+    </div>
+
+    <!-- Text Area -->
+    <div id="contentArea" class="p-3 border rounded bg-light"
+         style="white-space: pre-wrap; line-height:1.8; font-size:22px; font-family:'Jameel Noori Nastaleeq'; direction:rtl; cursor:pointer;">
+        {{ text.urdu_text|linebreaksbr }}
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const synth = window.speechSynthesis;
+    const voiceSelect = document.getElementById("voiceSelect");
+    const playBtn = document.getElementById("playBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const contentArea = document.getElementById("contentArea");
+    const fontInc = document.getElementById("fontInc");
+    const fontDec = document.getElementById("fontDec");
+
+    let words = [];
+    let playing = false;
+    let currentWordIndex = 0;
+    let currentVoice = null;
+    let fontSize = 22;
+
+    // Wrap each word in span
+    function wrapWords() {
+        const html = contentArea.innerHTML.replace(/(\S+)/g, '<span class="word">$1</span>');
+        contentArea.innerHTML = html;
+        words = Array.from(document.querySelectorAll("#contentArea .word"));
+    }
+
+    function clearHighlights() {
+        words.forEach(w => w.classList.remove("highlight"));
+    }
+    function highlightWord(index) {
+        clearHighlights();
+        if (words[index]) words[index].classList.add("highlight");
+    }
+
+    function loadVoices() {
+        const allVoices = synth.getVoices();
+        const urVoices = allVoices.filter(v => v.lang.startsWith("ur"));
+        voiceSelect.innerHTML = "<option value=''>Choose Voice</option>";
+
+        (urVoices.length ? urVoices : allVoices).forEach((v, i) => {
+            const option = document.createElement("option");
+            option.value = i;
+            option.textContent = `${v.name} (${v.lang})`;
+            voiceSelect.appendChild(option);
+        });
+
+        if ((urVoices.length ? urVoices : allVoices)[0]) {
+            currentVoice = (urVoices.length ? urVoices : allVoices)[0];
+            voiceSelect.value = "0";
+        }
+    }
+
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    wrapWords();
+
+    async function speakWords(startIndex = 0) {
+        playing = true;
+        currentWordIndex = startIndex;
+
+        for (let i = startIndex; i < words.length; i++) {
+            currentWordIndex = i;
+            highlightWord(i);
+
+            await new Promise(resolve => {
+                const u = new SpeechSynthesisUtterance(words[i].innerText);
+                u.voice = currentVoice;
+                u.rate = 0.9;
+                u.onend = resolve;
+                synth.speak(u);
+            });
+
+            if (!playing) break;
+        }
+
+        clearHighlights();
+        playing = false;
+    }
+
+    playBtn.addEventListener("click", () => {
+        if (synth.speaking) synth.cancel();
+        clearHighlights();
+        speakWords();
+    });
+
+    pauseBtn.addEventListener("click", () => {
+        if (synth.speaking && !synth.paused) synth.pause();
+        else if (synth.paused) synth.resume();
+    });
+
+    stopBtn.addEventListener("click", () => {
+        synth.cancel();
+        playing = false;
+        clearHighlights();
+    });
+
+    contentArea.addEventListener("click", (e) => {
+        if (!e.target.classList.contains("word")) return;
+        synth.cancel();
+        playing = false;
+
+        const idx = words.indexOf(e.target);
+        highlightWord(idx);
+
+        const u = new SpeechSynthesisUtterance(words[idx].innerText);
+        u.voice = currentVoice;
+        u.rate = 0.9;
+        u.onend = () => clearHighlights();
+        synth.speak(u);
+    });
+
+    voiceSelect.addEventListener("change", () => {
+        const idx = parseInt(voiceSelect.value);
+        const allVoices = synth.getVoices();
+        if (!isNaN(idx) && allVoices[idx]) currentVoice = allVoices[idx];
+    });
+
+    // Font increase/decrease
+    fontInc.addEventListener("click", () => {
+        fontSize += 2;
+        contentArea.style.fontSize = fontSize + "px";
+    });
+    fontDec.addEventListener("click", () => {
+        fontSize = Math.max(12, fontSize - 2);
+        contentArea.style.fontSize = fontSize + "px";
+    });
+});
+</script>
+
+<style>
+.highlight {
+    background-color: yellow;
+    border-radius: 4px;
+    padding: 2px;
+}
+#contentArea br {
+    display: block;
+    margin-bottom: 8px;
+}
+</style>
+{% endblock %}

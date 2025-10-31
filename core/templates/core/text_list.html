@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+
+{% block title %}📚 Text List{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">All Texts</h2>
+
+    <!-- ENGLISH TEXTS -->
+    <h3>English Texts</h3>
+    {% if english_texts %}
+        <div class="list-group mb-5">
+            {% for text in english_texts %}
+                <div class="list-group-item">
+                    <h5>{{ text.subject }} <small class="text-muted">({{ text.date }})</small></h5>
+                    <p>{{ text.english_text|linebreaksbr|truncatewords:50 }}</p>
+                    <a href="{% url 'text_english_read' text.pk %}" class="btn btn-primary btn-sm">Read English</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No English texts available.</p>
+    {% endif %}
+
+    <!-- URDU TEXTS -->
+    <h3>Urdu Texts</h3>
+    {% if urdu_texts %}
+        <div class="list-group mb-5">
+            {% for text in urdu_texts %}
+                <div class="list-group-item" style="font-family: 'Jameel Noori Nastaleeq'; direction: rtl;">
+                    <h5>{{ text.subject }} <small class="text-muted">({{ text.date }})</small></h5>
+                    <p>{{ text.urdu_text|linebreaksbr|truncatewords:50 }}</p>
+                    <a href="{% url 'text_urdu_read' text.pk %}" class="btn btn-primary btn-sm">Read Urdu</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No Urdu texts available.</p>
+    {% endif %}
+</div>
+{% endblock %}

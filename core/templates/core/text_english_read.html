@@ -1,0 +1,182 @@
+{% extends "core/base.html" %}
+
+{% block title %}📖 {{ text.subject }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-3">{{ text.subject }} <small class="text-muted">({{ text.date }})</small></h2>
+    
+    <!-- Controls -->
+    <div class="mb-3">
+        <button id="playBtn" class="btn btn-success btn-sm">▶️ Play</button>
+        <button id="pauseBtn" class="btn btn-warning btn-sm">⏸ Pause/Resume</button>
+        <button id="stopBtn" class="btn btn-danger btn-sm">⏹ Stop</button>
+
+        <!-- Voice Dropdown -->
+        <select id="voiceSelect" class="form-select d-inline w-auto ms-2">
+            <option value="">Choose Voice</option>
+        </select>
+    </div>
+
+    <!-- Font size controls -->
+    <div class="mb-2">
+        <button id="fontDec" class="btn btn-secondary btn-sm">A-</button>
+        <button id="fontInc" class="btn btn-secondary btn-sm">A+</button>
+        <label for="speedRange" class="ms-3">Speed:</label>
+        <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1">
+        <span id="speedValue">1.0x</span>
+    </div>
+
+    <!-- Text Area -->
+    <div id="contentArea" class="p-3 border rounded bg-light"
+         style="white-space: pre-wrap; line-height:1.8; font-size:18px; cursor:pointer;">
+        {{ text.english_text|linebreaksbr }}
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const synth = window.speechSynthesis;
+    let voices = [];
+    const voiceSelect = document.getElementById("voiceSelect");
+    const playBtn = document.getElementById("playBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const contentArea = document.getElementById("contentArea");
+    const speedRange = document.getElementById("speedRange");
+    const speedValue = document.getElementById("speedValue");
+    const fontInc = document.getElementById("fontInc");
+    const fontDec = document.getElementById("fontDec");
+
+    let utterance = null;
+    let words = [];
+    let fontSize = 18;
+
+    // Wrap words
+    function wrapWords() {
+        const html = contentArea.innerHTML.replace(/(\S+)/g, '<span class="word">$1</span>');
+        contentArea.innerHTML = html;
+        words = document.querySelectorAll("#contentArea .word");
+    }
+
+    // Highlight helpers
+    function clearHighlights() {
+        words.forEach(w => w.classList.remove("highlight"));
+    }
+
+    // Load voices
+    function loadVoices() {
+        const allVoices = synth.getVoices();
+        voices = allVoices.filter(v =>
+            v.lang === "en-US" || v.lang === "en-GB" || v.lang === "en-IN" || v.lang.startsWith("en")
+        );
+        voiceSelect.innerHTML = "<option value=''>Choose Voice</option>";
+        voices.forEach((v, i) => {
+            let label = v.lang === "en-US" ? "English (US)"
+                      : v.lang === "en-GB" ? "English (UK)"
+                      : v.lang === "en-IN" ? "English (India)"
+                      : `${v.name} (${v.lang})`;
+            const option = document.createElement("option");
+            option.value = String(i);
+            option.textContent = label;
+            voiceSelect.appendChild(option);
+        });
+    }
+
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    wrapWords();
+
+    // Font size buttons
+    fontInc.addEventListener("click", () => {
+        fontSize += 2;
+        contentArea.style.fontSize = fontSize + "px";
+    });
+    fontDec.addEventListener("click", () => {
+        fontSize = Math.max(12, fontSize - 2);
+        contentArea.style.fontSize = fontSize + "px";
+    });
+
+    // Speed slider
+    speedRange.addEventListener("input", () => {
+        speedValue.innerText = speedRange.value + "x";
+    });
+
+    // Play full text
+    playBtn.addEventListener("click", () => {
+        if (!contentArea) return;
+        if (synth.speaking) synth.cancel();
+        clearHighlights();
+
+        const fullText = Array.from(words).map(w => w.innerText).join(" ");
+        if (!fullText.trim()) return;
+
+        utterance = new SpeechSynthesisUtterance(fullText);
+        utterance.rate = parseFloat(speedRange.value);
+
+        const idx = parseInt(voiceSelect.value);
+        if (!isNaN(idx) && voices[idx]) utterance.voice = voices[idx];
+
+        utterance.onboundary = (event) => {
+            if (event.name === "word" || event.charIndex !== undefined) {
+                let upto = fullText.substring(0, event.charIndex);
+                let wordIndex = upto.trim().split(/\s+/).length - 1;
+                clearHighlights();
+                if (words[wordIndex]) words[wordIndex].classList.add("highlight");
+            }
+        };
+
+        utterance.onend = clearHighlights;
+        synth.speak(utterance);
+    });
+
+    // Pause / Resume
+    pauseBtn.addEventListener("click", () => {
+        if (synth.speaking && !synth.paused) synth.pause();
+        else if (synth.paused) synth.resume();
+    });
+
+    // Stop
+    stopBtn.addEventListener("click", () => {
+        if (synth.speaking) {
+            synth.cancel();
+            clearHighlights();
+        }
+    });
+
+    // Tap-to-Read single word
+    contentArea.addEventListener("click", (e) => {
+        if (!e.target.classList.contains("word")) return;
+        synth.cancel();
+        clearHighlights();
+
+        const w = e.target.innerText;
+        const u = new SpeechSynthesisUtterance(w);
+        u.rate = parseFloat(speedRange.value);
+
+        const idx = parseInt(voiceSelect.value);
+        if (!isNaN(idx) && voices[idx]) u.voice = voices[idx];
+
+        u.onstart = () => e.target.classList.add("highlight");
+        u.onend = clearHighlights;
+
+        synth.speak(u);
+    });
+});
+</script>
+
+<style>
+.highlight {
+    background-color: yellow;
+    border-radius: 4px;
+    padding: 2px;
+}
+#contentArea br {
+    display: block;
+    margin-bottom: 8px;
+}
+</style>
+{% endblock %}
