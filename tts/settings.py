@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
-import dj_database_url
 from decouple import config
+import dj_database_url
 
 """
-Django settings for tts project (Render deployment ready with SQLite).
+Django settings for tts project (Render deployment ready with SQLite + Whitenoise)
 """
 
 # ----------------- PATHS -----------------
@@ -13,9 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ----------------- SECURITY -----------------
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-ymj2bavyv&y=l$-o#oc95-!zvueijny@@3t8ronx=puo$38xwy')
 DEBUG = config('DEBUG', default=False, cast=bool)
-
-# Allow Render and local access
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*']  # For Render & local
 
 # ----------------- APPLICATIONS -----------------
 INSTALLED_APPS = [
@@ -33,7 +31,7 @@ INSTALLED_APPS = [
 # ----------------- MIDDLEWARE -----------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # For serving static files on Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ✅ Static files handler for Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -50,9 +48,7 @@ WSGI_APPLICATION = 'tts.wsgi.application'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Global templates folder
-        'DIRS': [BASE_DIR / "templates"],
-        # App-specific templates (e.g., core/templates/core/)
+        'DIRS': [BASE_DIR / "templates"],  # global templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -66,10 +62,11 @@ TEMPLATES = [
 ]
 
 # ----------------- DATABASE -----------------
+# Local SQLite — stays within repo
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # SQLite stored in repo
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -89,11 +86,18 @@ USE_TZ = True
 
 # ----------------- STATIC FILES -----------------
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]  # for dev
+STATIC_ROOT = BASE_DIR / "staticfiles"     # for Render
 
-# Enable Whitenoise compressed storage
+# ✅ Whitenoise compressed static files storage
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ----------------- DEFAULT PK -----------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ----------------- RENDER-SPECIFIC -----------------
+# Helps Render detect the environment correctly
+if not DEBUG:
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    print("✅ Running in Render Production Mode with SQLite + Whitenoise")
