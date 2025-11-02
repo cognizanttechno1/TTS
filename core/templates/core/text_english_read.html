@@ -3,28 +3,34 @@
 {% block title %}📖 {{ text.subject }}{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="mb-3">{{ text.subject }} <small class="text-muted">({{ text.date }})</small></h2>
+<div class="container-fluid mt-4 px-3">
+    <h2 class="mb-3 text-center">{{ text.subject }} 
+        <small class="text-muted d-block d-md-inline">({{ text.date }})</small>
+    </h2>
     
     <!-- Controls -->
-    <div class="mb-3">
-        <button id="playBtn" class="btn btn-success btn-sm">▶️ Play</button>
-        <button id="pauseBtn" class="btn btn-warning btn-sm">⏸ Pause/Resume</button>
-        <button id="stopBtn" class="btn btn-danger btn-sm">⏹ Stop</button>
+    <div class="d-flex flex-wrap gap-2 mb-3 justify-content-center">
+        <button id="playBtn" class="btn btn-success btn-sm flex-grow-1 flex-md-grow-0">▶️ Play</button>
+        <button id="pauseBtn" class="btn btn-warning btn-sm flex-grow-1 flex-md-grow-0">⏸ Pause/Resume</button>
+        <button id="stopBtn" class="btn btn-danger btn-sm flex-grow-1 flex-md-grow-0">⏹ Stop</button>
 
         <!-- Voice Dropdown -->
-        <select id="voiceSelect" class="form-select d-inline w-auto ms-2">
+        <select id="voiceSelect" class="form-select w-100 w-md-auto mt-2 mt-md-0">
             <option value="">Choose Voice</option>
         </select>
     </div>
 
-    <!-- Font size controls -->
-    <div class="mb-2">
-        <button id="fontDec" class="btn btn-secondary btn-sm">A-</button>
-        <button id="fontInc" class="btn btn-secondary btn-sm">A+</button>
-        <label for="speedRange" class="ms-3">Speed:</label>
-        <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1">
-        <span id="speedValue">1.0x</span>
+    <!-- Font size & speed controls -->
+    <div class="d-flex flex-wrap align-items-center justify-content-center mb-3 gap-2">
+        <div>
+            <button id="fontDec" class="btn btn-secondary btn-sm">A-</button>
+            <button id="fontInc" class="btn btn-secondary btn-sm">A+</button>
+        </div>
+        <div class="d-flex align-items-center">
+            <label for="speedRange" class="ms-2 me-1">Speed:</label>
+            <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1">
+            <span id="speedValue" class="ms-1">1.0x</span>
+        </div>
     </div>
 
     <!-- Text Area -->
@@ -177,6 +183,27 @@ document.addEventListener("DOMContentLoaded", () => {
 #contentArea br {
     display: block;
     margin-bottom: 8px;
+}
+body {
+    overflow-x: hidden;
+    word-wrap: break-word;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  h2 {
+    font-size: 1.2rem;
+  }
+  #contentArea {
+    font-size: 16px !important;
+    padding: 12px;
+  }
+  button, select {
+    font-size: 14px;
+  }
+  .container-fluid {
+    margin-top: 1rem !important;
+  }
 }
 </style>
 {% endblock %}
